@@ -30,7 +30,7 @@ Much like authlogic itself, after you install the plugin, the rest is pretty muc
 
 At any rate, since I'm not using these columns, my User model looks like this:
 
-  class User < ActiveRecrod::Base
+  class User < ActiveRecord::Base
     acts_as_authentic do |c|
       c.validate_remote_http_login = false
     end
