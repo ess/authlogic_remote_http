@@ -1,0 +1,10 @@
+CHANGELOG.rdoc
+MIT-LICENSE
+Manifest.txt
+README.rdoc
+Rakefile
+init.rb
+lib/authlogic_remote_http.rb
+lib/authlogic_remote_http/acts_as_authentic.rb
+lib/authlogic_remote_http/session.rb
+lib/authlogic_remote_http/version.rb

@@ -1,0 +1,11 @@
+== 0.1.0
+
+* Fixed a syntax error in init.rb
+* Added a config method to allow a full DN for login
+* Added a Todo.rdoc txt for items that need to be done
+* Renamed README.rdoc to ReadMe.rdoc and updated the information
+* Renamed CHANGELOG.rdoc to ChangeLog.rdoc and updated the information
+
+== 0.0.9
+
+* Initial release
