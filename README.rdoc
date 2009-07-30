@@ -1,4 +1,4 @@
-= authlogic-ldap
+= authlogic-remote-http
 
 http://github.com/ess/authlogic_remote_http
 

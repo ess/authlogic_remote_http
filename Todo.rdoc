@@ -1,4 +1,2 @@
 == Todo Items
-* Bundle in Jeremy Evans' simple_ldap_authenticator (adds more lib support and options) and use that for the ldap authentication.  Extend the authlogic module to expose the options.  http://github.com/jeremyevans/simple_ldap_authenticator/tree
 * Add tests
-* Add an option for the following use case: no existing local user => create one on successful ldap auth
