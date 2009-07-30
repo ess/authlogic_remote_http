@@ -40,14 +40,16 @@ module AuthlogicRemoteHttp
         def validate_remote_http
           return if errors.count > 0
         
+          require 'uri'
           require 'net/http'
           require 'net/https'
-          http = Net::HTTP::new(remote_http_host, remote_http_port)
-          if remote_http_use_ssl
+          myuri = URI.parse(remote_http_uri)
+          http = Net::HTTP::new(myuri.host, myuri.port)
+          if myuri.scheme == 'https'
             http.use_ssl = true
             http.verify_mode = OpenSSL::SSL::VERIFY_NONE
           end
-          req = Net::HTTP::Get.new(remote_http_path)
+          req = Net::HTTP::Get.new(myuri.path)
           req.basic_auth(remote_http_login, remote_http_password)
           result = http.request(req).header.code.to_i == 200
           errors.add_to_base('401 - Authorization Failed') unless result

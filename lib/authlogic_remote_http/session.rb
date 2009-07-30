@@ -9,45 +9,18 @@ module AuthlogicRemoteHttp
     end
     
     module Config
-      # The remote HTTP server hostname.
+
+      # The URI to which the HTTP Basic auth should happen.  This must be a
+      # fully-formed uri of the form scheme://host:port/path/to/location/ , 
+      # including the trailing slash in the case of a directory.
       #
       # * <tt>Default:</tt> nil
       # * <tt>Accepts:</tt> String
-      def remote_http_host(value = nil)
-        rw_config(:remote_http_host, value)
+      def remote_http_uri(value = nil)
+        rw_config(:remote_http_uri, value)
       end
-      alias_method :remote_http_host=, :remote_http_host
-      
-      # The remote URI path.  This requires a trailing slash for directory
-      # locations.
-      #
-      # * <tt>Default:</tt> nil
-      # * <tt>Accepts:</tt> String
-      def remote_http_path(value = nil)
-        rw_config(:remote_http_path, value)
-      end
-      alias_method :remote_http_path=, :remote_http_path
+      alias_method :remote_http_uri=, :remote_http_uri
 
-      # The remote HTTP port.
-      #
-      # * <tt>Default:</tt> 80
-      # * <tt>Accepts:</tt> Integer
-      def remote_http_port(value = nil)
-        rw_config(:remote_http_port, value, 80)
-      end
-      alias_method :remote_http_port=, :remote_http_port
-
-      # Should we use SSL for the remote connection?  This uses VERIFY_NONE
-      # because I don't really know of a good way to deal with wildcard
-      # certs without monkeypatching Net::HTTP.
-      #
-      # * <tt>Default:</tt> false
-      # * <tt>Accepts:</tt> Boolean
-      def remote_http_use_ssl(value = nil)
-        rw_config(:remote_http_use_ssl, value, false)
-      end
-      alias_method :remote_http_use_ssl=, :remote_http_use_ssl
-      
       # Once remote HTTP authentication has succeeded we need to find the
       # user in the database. By default this just calls the 
       # find_by_remote_http_login method provided by ActiveRecord. If you
@@ -113,7 +86,7 @@ module AuthlogicRemoteHttp
       
       private
         def authenticating_with_remote_http?
-          !remote_http_host.blank? && (!remote_http_login.blank? || !remote_http_password.blank?)
+          !remote_http_uri.blank? && (!remote_http_login.blank? || !remote_http_password.blank?)
         end
         
         def validate_by_remote_http
@@ -121,14 +94,16 @@ module AuthlogicRemoteHttp
           errors.add(:remote_http_password, I18n.t('error_messages.remote_http_password_blank', :default => "can not be blank")) if remote_http_password.blank?
           return if errors.count > 0
 
+          require 'uri'
           require 'net/http'
           require 'net/https'
-          http = Net::HTTP::new(remote_http_host, remote_http_port)
-          if remote_http_use_ssl
+          myuri = URI.parse(remote_http_uri)
+          http = Net::HTTP::new(myuri.host, myuri.port)
+          if myuri.scheme == 'https'
             http.use_ssl = true
             http.verify_mode = OpenSSL::SSL::VERIFY_NONE
           end
-          req = Net::HTTP::Get.new(remote_http_path)
+          req = Net::HTTP::Get.new(myuri.path)
           req.basic_auth(remote_http_login, remote_http_password)
           result = http.request(req).header.code.to_i == 200
           if result
@@ -138,21 +113,9 @@ module AuthlogicRemoteHttp
             errors.add_to_base("401 - Authorization Failed")
           end
         end
-        
-        def remote_http_host
-          self.class.remote_http_host
-        end
-        
-        def remote_http_path
-          self.class.remote_http_path
-        end
 
-        def remote_http_port
-          self.class.remote_http_port
-        end
-        
-        def remote_http_use_ssl
-          self.class.remote_http_use_ssl
+        def remote_http_uri
+          self.class.remote_http_uri
         end
 
         def find_by_remote_http_login_method
