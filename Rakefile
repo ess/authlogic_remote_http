@@ -1,4 +1,4 @@
-ENV['RDOCOPT'] = "-S -f html -T hanna"
+ENV['RDOCOPT'] = "-S -f html"
 
 require "rubygems"
 require "hoe"

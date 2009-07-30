@@ -24,13 +24,38 @@ It is based on the basic skeleton of pol's fork of authlogic_ldap ( http://githu
 
 == EXAMPLE:
 
-This will get added eventually.  Promise.  Fer shore.
+Before I begin, I'd like to apologize in advance for my tone.  I'm not really one for businessworldspeak, and that tends to show muchly in my docs.
+
+Much like authlogic itself, after you install the plugin, the rest is pretty much up to you.  If you like, you can add a remote_http_login column to your database table.  Personally, I prefer not to do so, but if you do, that's cool.
+
+At any rate, since I'm not using these columns, my User model looks like this:
+
+  class User < ActiveRecrod::Base
+    acts_as_authentic do |c|
+      c.validate_remote_http_login = false
+    end
+  end
+
+I know ... it's sparse, but this is an example.  Ever notice that examples are rarely actually useful?
+
+Anyways, in order for everything to be shiny and happy, you'll need to add some configuration options to your session (UserSession in this example) model as well:
+
+  class UserSession < Authlogic::Session::Base
+    remote_http_uri 'http://thefulluri.to/your/remote/auth/'
+    find_by_remote_http_login_method :find_or_create_by_login
+  end
+
+There are a couple of things to note here.  The first is that remote_http_uri MUST be a well-formed URI.  It needs to have its scheme, a colon, a couple of slashes, a hostname, optionally a colon and a port number, another slash, and the full path to the location against which HTTP Basic auth should be performed.  If this is a directory, you're going to need the trailing slash as well.
+
+Secondly, since I've not added a remote_http_login column to my user table, I need to specify the method that should be used to check that table.  I'm pretty lazy when it comes down, so rather than taking the time to hassle the user for not already having registered, I've got my session model set up to just create the user if it doesn't already exist in the database.
+
+From this point, everything should Just Work (TM).  If something fails, I'd appreciate a heads-up through the issue tracker on the github repo for the add-on.
 
 == LICENSE:
 
 (The MIT License)
 
-Copyright (c) 2009
+Copyright (c) 2009 Dennis Walters, II, ( http://smurfeater.com )
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
