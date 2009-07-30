@@ -9,7 +9,7 @@ module AuthlogicRemoteHttp
     end
     
     module Config
-      # The host of your LDAP server.
+      # The remote HTTP server hostname.
       #
       # * <tt>Default:</tt> nil
       # * <tt>Accepts:</tt> String
@@ -18,49 +18,51 @@ module AuthlogicRemoteHttp
       end
       alias_method :remote_http_host=, :remote_http_host
       
-      # The port of your LDAP server.
+      # The remote URI path.  This requires a trailing slash for directory
+      # locations.
       #
-      # * <tt>Default:</tt> 389
-      # * <tt>Accepts:</tt> Fixnum, integer
+      # * <tt>Default:</tt> nil
+      # * <tt>Accepts:</tt> String
       def remote_http_path(value = nil)
-        rw_config(:remote_http_path, value, 389)
+        rw_config(:remote_http_path, value)
       end
       alias_method :remote_http_path=, :remote_http_path
 
-      # The login format (the DN for the username) where the given remote_http_login
-      # will replace the '%s' in the string.
+      # The remote HTTP port.
       #
-      # Example: "uid=%s,ou=People,o=myserver.institution.edu,o=cp"
-      #
-      # * <tt>Default:</tt> "%s"
-      # * <tt>Accepts:</tt> String
-      def remote_http_login_format(value = nil)
-        rw_config(:remote_http_login_format, value, "%s")
+      # * <tt>Default:</tt> 80
+      # * <tt>Accepts:</tt> Integer
+      def remote_http_port(value = nil)
+        rw_config(:remote_http_port, value, 80)
       end
-      alias_method :remote_http_login_format=, :remote_http_login_format
-      
-      # LDAP Encryption configuration settings. Depending on your current LDAP Server
-      # you may need to setup encryption.
-      #
-      # Example: remote_http_use_encryption true
+      alias_method :remote_http_port=, :remote_http_port
+
+      # Should we use SSL for the remote connection?  This uses VERIFY_NONE
+      # because I don't really know of a good way to deal with wildcard
+      # certs without monkeypatching Net::HTTP.
       #
       # * <tt>Default:</tt> false
       # * <tt>Accepts:</tt> Boolean
-      def remote_http_use_encryption(value = nil)
-        rw_config(:remote_http_use_encryption, value, false)
+      def remote_http_use_ssl(value = nil)
+        rw_config(:remote_http_use_ssl, value, false)
       end
-      alias_method :remote_http_use_encryption=, :remote_http_use_encryption
+      alias_method :remote_http_use_ssl=, :remote_http_use_ssl
       
-      
-      # Once LDAP authentication has succeeded we need to find the user in the database. By default this just calls the
-      # find_by_remote_http_login method provided by ActiveRecord. If you have a more advanced set up and need to find users
-      # differently specify your own method and define your logic in there.
+      # Once remote HTTP authentication has succeeded we need to find the
+      # user in the database. By default this just calls the 
+      # find_by_remote_http_login method provided by ActiveRecord. If you
+      # have a more advanced set up and need to find users differently
+      # specify your own method and define your logic in there.
       #
-      # For example, if you allow users to store multiple ldap logins with their account, you might do something like:
+      # For example, if you allow users to store multiple ldap logins with
+      # their account, you might do something like:
       #
       #   class User < ActiveRecord::Base
       #     def self.find_by_remote_http_login(login)
-      #       first(:conditions => ["#{LdapLogin.table_name}.login = ?", login], :join => :remote_http_logins)
+      #       first(:conditions => [
+      #         "#{RemoteHttpLogin.table_name}.login = ?", 
+      #         login
+      #       ], :join => :remote_http_logins)
       #     end
       #   end
       #
@@ -84,7 +86,8 @@ module AuthlogicRemoteHttp
         end
       end
       
-      # Hooks into credentials to print out meaningful credentials for LDAP authentication.
+      # Hooks into credentials to print out meaningful credentials for
+      # remote HTTP authentication.
       def credentials
         if authenticating_with_remote_http?
           details = {}
@@ -96,7 +99,8 @@ module AuthlogicRemoteHttp
         end
       end
       
-      # Hooks into credentials so that you can pass an :remote_http_login and :remote_http_password key.
+      # Hooks into credentials so that you can pass an :remote_http_login
+      # and :remote_http_password key.
       def credentials=(value)
         super
         values = value.is_a?(Array) ? value : [value]
@@ -118,7 +122,12 @@ module AuthlogicRemoteHttp
           return if errors.count > 0
 
           require 'net/http'
-          http = Net::HTTP::new(remote_http_host, 80)
+          require 'net/https'
+          http = Net::HTTP::new(remote_http_host, remote_http_port)
+          if remote_http_use_ssl
+            http.use_ssl = true
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+          end
           req = Net::HTTP::Get.new(remote_http_path)
           req.basic_auth(remote_http_login, remote_http_password)
           result = http.request(req).header.code.to_i == 200
@@ -137,9 +146,13 @@ module AuthlogicRemoteHttp
         def remote_http_path
           self.class.remote_http_path
         end
+
+        def remote_http_port
+          self.class.remote_http_port
+        end
         
-        def remote_http_login_format
-          self.class.remote_http_login_format
+        def remote_http_use_ssl
+          self.class.remote_http_use_ssl
         end
 
         def find_by_remote_http_login_method

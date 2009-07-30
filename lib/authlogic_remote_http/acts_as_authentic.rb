@@ -41,7 +41,12 @@ module AuthlogicRemoteHttp
           return if errors.count > 0
         
           require 'net/http'
-          http = Net::HTTP::new(remote_http_host)
+          require 'net/https'
+          http = Net::HTTP::new(remote_http_host, remote_http_port)
+          if remote_http_use_ssl
+            http.use_ssl = true
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+          end
           req = Net::HTTP::Get.new(remote_http_path)
           req.basic_auth(remote_http_login, remote_http_password)
           result = http.request(req).header.code.to_i == 200
